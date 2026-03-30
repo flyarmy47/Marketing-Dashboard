@@ -19,6 +19,9 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
+// Health check
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/connections', connectionRoutes);
