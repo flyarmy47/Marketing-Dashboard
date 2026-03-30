@@ -1,18 +1,28 @@
-import { supabase } from './supabase';
+export function getToken() {
+  return localStorage.getItem('auth_token');
+}
+
+export function setToken(token) {
+  localStorage.setItem('auth_token', token);
+}
+
+export function clearToken() {
+  localStorage.removeItem('auth_token');
+}
 
 export async function apiFetch(path, options = {}) {
-  const { data: { session } } = await supabase.auth.getSession();
+  const token = getToken();
 
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
   };
 
-  if (session?.access_token) {
-    headers['Authorization'] = `Bearer ${session.access_token}`;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`/.netlify/functions/${path}`, {
+  const response = await fetch(`/api/${path}`, {
     ...options,
     headers,
   });

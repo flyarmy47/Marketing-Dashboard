@@ -35,12 +35,12 @@ All metrics toggleable per user via settings panel.
 ## Supported Platforms
 
 ### Phase 1 (MVP Launch)
-- **Google Ads** — Google Ads API v14+
-- **Meta Ads** — Meta Marketing API v18+
+- **Google Ads** -- Google Ads API v14+
+- **Meta Ads** -- Meta Marketing API v18+
 
 ### Phase 2
-- **YouTube Ads** — via Google Ads API (Video campaigns)
-- **Reddit Ads** — Reddit Ads API
+- **YouTube Ads** -- via Google Ads API (Video campaigns)
+- **Reddit Ads** -- Reddit Ads API
 
 ### Phase 3+
 - LinkedIn, TikTok, X, Microsoft/Bing
@@ -52,43 +52,43 @@ All metrics toggleable per user via settings panel.
 | Layer | Technology |
 |---|---|
 | Frontend | React + Tailwind CSS |
-| Backend/API | Netlify Functions (Node.js) |
-| Database | Supabase (Postgres) |
-| Auth | Supabase Auth |
+| Backend/API | Express.js (Node.js) |
+| Database | PostgreSQL (Railway) |
+| ORM | Prisma |
+| Auth | Custom JWT (bcrypt + jsonwebtoken) |
 | Ad Platform Auth | OAuth 2.0 per platform |
-| Credential Storage | Supabase (encrypted + RLS) |
-| Hosting | Netlify |
-| Scheduling | Netlify Scheduled Functions (hourly cron) |
+| Hosting | Railway |
+| Scheduling | Railway Cron Jobs |
 
 ---
 
 ## Architecture
 
 ### Frontend (React + Tailwind)
-- `src/pages/` — Login, Signup, Dashboard, Connections, Settings, OAuthCallback
-- `src/components/` — Layout, MetricTile, MetricGrid, TileConfigurator, DateRangePicker, ConnectionCard, PlatformBadge, LoadingSpinner, ProtectedRoute
-- `src/hooks/` — useDashboard (metrics + tile config), useConnections (OAuth connections)
-- `src/context/` — AuthContext with Supabase auth
-- `src/lib/` — Supabase client singleton, API fetch wrapper
+- `src/pages/` -- Login, Signup, Dashboard, Connections, Settings, OAuthCallback
+- `src/components/` -- Layout, MetricTile, MetricGrid, TileConfigurator, DateRangePicker, ConnectionCard, PlatformBadge, LoadingSpinner, ProtectedRoute
+- `src/hooks/` -- useDashboard (metrics + tile config), useConnections (OAuth connections)
+- `src/context/` -- AuthContext with JWT auth (localStorage token)
+- `src/lib/` -- API fetch wrapper with Bearer token
 
-### Backend (Netlify Functions)
-- `auth-session.js` — Shared JWT verification + tenant resolution
-- `oauth-google-ads-start/callback.js` — Google Ads OAuth flow
-- `oauth-meta-ads-start/callback.js` — Meta Ads OAuth flow
-- `connections-list.js` / `connections-delete.js` — CRUD for connections
-- `dashboard-metrics.js` — Aggregates metrics with computed fields (CTR, CPA, CPM, ROI, Frequency)
-- `dashboard-config.js` — GET/PUT tile configuration
-- `refresh-google.js` / `refresh-meta.js` — Platform-specific data ingestion
-- `scheduled-refresh.js` — Hourly cron job for all active connections
+### Backend (Express.js)
+- `server/routes/auth.js` -- Signup, login, session verification (JWT)
+- `server/routes/oauth.js` -- Google Ads + Meta Ads OAuth flows
+- `server/routes/connections.js` -- List and delete ad platform connections
+- `server/routes/dashboard.js` -- Aggregated metrics with computed fields (CTR, CPA, CPM, ROI, Frequency)
+- `server/routes/settings.js` -- Tenant management
+- `server/routes/refresh.js` -- Platform data ingestion trigger
+- `server/middleware/auth.js` -- JWT verification middleware
 
-### Database (Supabase)
-- 5 tables: tenants, tenant_users, connections, metrics, dashboard_configs
-- Full RLS policies for multi-tenant isolation
+### Database (Railway Postgres + Prisma)
+- 6 models: User, Tenant, TenantUser, Connection, Metric, DashboardConfig
+- Application-level authorization via JWT middleware
 - Computed metrics (CTR, CPA, CPM, ROI, Frequency) calculated at query time
 
 ### Key Design Decisions
-- **Computed metrics live in the API, not the database.** CTR, CPA, CPM, ROI, and Frequency are calculated at query time from raw stored columns.
-- **OAuth callbacks are server-side redirects.** Token exchange happens in Netlify Functions where secrets live.
-- **`auth-session.js` is a shared module.** Exports `verifySession` imported by all authenticated functions.
-- **One row per connection per day in `metrics`.** UNIQUE(connection_id, date) constraint enables upsert on hourly refresh.
-- **Tile config is JSONB.** Simple ordered array of metric keys stored per tenant.
+- **Railway over Supabase.** Single platform for database + hosting + cron.
+- **Custom JWT auth.** bcrypt for password hashing, jsonwebtoken for sessions stored in localStorage.
+- **Prisma ORM.** Type-safe database access with migrations.
+- **Express serves both API and static frontend.** Single Railway service, Vite builds to `dist/`.
+- **Computed metrics live in the API.** CTR, CPA, CPM, ROI, and Frequency calculated at query time.
+- **One row per connection per day.** UNIQUE(connection_id, date) enables upsert on refresh.

@@ -16,12 +16,12 @@ export default function Signup() {
     setError('');
     setLoading(true);
 
-    const { error } = await signUp(email, password, orgName);
-    if (error) {
-      setError(error.message);
+    try {
+      await signUp(email, password, orgName);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message);
       setLoading(false);
-    } else {
-      navigate('/login');
     }
   };
 

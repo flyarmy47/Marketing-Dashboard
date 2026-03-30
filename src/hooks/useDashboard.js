@@ -16,12 +16,12 @@ export default function useDashboard({ dateRange }) {
         end: dateRange.end,
       });
       const [metricsData, configData] = await Promise.all([
-        apiFetch(`dashboard-metrics?${params}`),
-        apiFetch('dashboard-config'),
+        apiFetch(`dashboard/metrics?${params}`),
+        apiFetch('dashboard/config'),
       ]);
       setMetrics(metricsData);
-      if (configData?.tile_config) {
-        setTileConfig(configData.tile_config);
+      if (configData?.tileConfig) {
+        setTileConfig(configData.tileConfig);
       }
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
@@ -36,9 +36,9 @@ export default function useDashboard({ dateRange }) {
 
   const saveTileConfig = async (config) => {
     setTileConfig(config);
-    await apiFetch('dashboard-config', {
+    await apiFetch('dashboard/config', {
       method: 'PUT',
-      body: JSON.stringify({ tile_config: config }),
+      body: JSON.stringify({ tileConfig: config }),
     });
   };
 

@@ -1,36 +1,29 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import { apiFetch } from '../lib/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function Settings() {
   const { user, signOut } = useAuth();
   const [orgName, setOrgName] = useState('');
-  const [tenantId, setTenantId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    async function loadTenant() {
-      const { data: membership } = await supabase
-        .from('tenant_users')
-        .select('tenant_id, tenants(name)')
-        .eq('user_id', user.id)
-        .single();
-
-      if (membership) {
-        setTenantId(membership.tenant_id);
-        setOrgName(membership.tenants.name);
-      }
-      setLoading(false);
-    }
-    loadTenant();
-  }, [user.id]);
+    apiFetch('settings/tenant')
+      .then((tenant) => {
+        setOrgName(tenant.name);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
-    await supabase.from('tenants').update({ name: orgName }).eq('id', tenantId);
+    await apiFetch('settings/tenant', {
+      method: 'PUT',
+      body: JSON.stringify({ name: orgName }),
+    });
     setSaving(false);
   };
 

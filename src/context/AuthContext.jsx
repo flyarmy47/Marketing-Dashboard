@@ -1,58 +1,55 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { apiFetch, setToken, clearToken, getToken } from '../lib/api';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const token = getToken();
+    if (!token) {
       setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signIn = (email, password) =>
-    supabase.auth.signInWithPassword({ email, password });
-
-  const signUp = async (email, password, orgName) => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) return { data, error };
-
-    if (data.user) {
-      const { data: tenant, error: tenantError } = await supabase
-        .from('tenants')
-        .insert({ name: orgName })
-        .select()
-        .single();
-
-      if (!tenantError && tenant) {
-        await supabase.from('tenant_users').insert({
-          tenant_id: tenant.id,
-          user_id: data.user.id,
-          role: 'owner',
-        });
-      }
+      return;
     }
 
-    return { data, error };
+    apiFetch('auth/me')
+      .then((data) => setUser(data.user))
+      .catch(() => {
+        clearToken();
+        setUser(null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const signIn = async (email, password) => {
+    const data = await apiFetch('auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    setToken(data.token);
+    setUser(data.user);
+    return data;
   };
 
-  const signOut = () => supabase.auth.signOut();
+  const signUp = async (email, password, orgName) => {
+    const data = await apiFetch('auth/signup', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, orgName }),
+    });
+    setToken(data.token);
+    setUser(data.user);
+    return data;
+  };
+
+  const signOut = () => {
+    clearToken();
+    setUser(null);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

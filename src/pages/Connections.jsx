@@ -8,7 +8,7 @@ export default function Connections() {
   const { connections, loading, remove } = useConnections();
 
   const handleConnect = (platform) => {
-    window.location.href = `/.netlify/functions/oauth-${platform.replace('_', '-')}-start`;
+    window.location.href = `/api/oauth/${platform.replace('_', '-')}/start`;
   };
 
   const handleDisconnect = async (connectionId) => {

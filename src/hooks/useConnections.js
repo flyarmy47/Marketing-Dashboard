@@ -7,7 +7,7 @@ export default function useConnections() {
 
   const fetchConnections = useCallback(async () => {
     try {
-      const data = await apiFetch('connections-list');
+      const data = await apiFetch('connections');
       setConnections(data || []);
     } catch (err) {
       console.error('Failed to fetch connections:', err);
@@ -21,10 +21,7 @@ export default function useConnections() {
   }, [fetchConnections]);
 
   const remove = async (connectionId) => {
-    await apiFetch('connections-delete', {
-      method: 'DELETE',
-      body: JSON.stringify({ id: connectionId }),
-    });
+    await apiFetch(`connections/${connectionId}`, { method: 'DELETE' });
     setConnections((prev) => prev.filter((c) => c.id !== connectionId));
   };
 
